@@ -37,11 +37,9 @@ ota:
     password: !secret ota_password
 
 external_components:
-  - source:
-      type: local
-      path: components
+  - source: github://matt-nz/fujitsu-legacy-esphome@main
     components: [ fujitsu_aot30 ]
-    refresh: 0s
+    refresh: always
 
 # rx_pin = GPIO16 (from the transceiver's TXD pin), tx_pin = GPIO17 (to the transceiver's RXD pin).
 # Set debug: true temporarily for raw receive logs; INFO/WARN/ERROR messages remain enabled without it.
