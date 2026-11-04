@@ -19,7 +19,7 @@ flowchart TB
                 FUSE["Fuse 500 mA<br/>(resettable)"]
                 TVS["TVS 15 V<br/>across 12 V / GND"]
                 BUCK["12 V to 5 V buck<br/>(1 A)"]
-                LINX["TJA1021 LIN transceiver<br/>10 k TXD pull-up, SLP_N high,<br/>100 nF on VBAT"]
+                LINX["MCP2021-330 LIN transceiver<br/>3.3 V logic; separate screen supply<br/>see circuit guide for enable / bypass"]
             end
         end
     end
@@ -65,11 +65,11 @@ stateDiagram-v2
 | # | Part | Notes | Rough cost |
 |---|---|---|---|
 | 1 | ESP32 touch-screen board | Options below. Needs 2 free GPIOs and 5 V. | US$15-50 |
-| 2 | TJA1021 LIN transceiver module | The "linttl3" you already have. Check RXD is 3.3 V safe. | US$3-8 |
+| 2 | MCP2021-330 LIN transceiver | Same IC as the reference circuit; see [circuit guide](aot30-circuit.md). Its 50 mA VREG cannot power the screen/ESP. | Supplier-dependent |
 | 3 | 12 V to 5 V buck module, 1 A | MP1584EN or LM2596 type, set and check 5.0 V before connecting the board. | US$2 |
 | 4 | Resettable fuse, 500 mA (or a 500 mA fuse and holder) | On the 12 V input. | US$1 |
 | 5 | TVS diode, 15 V standoff (for example SMBJ15A) | Across 12 V and GND at the input. | US$1 |
-| 6 | 10 k resistor and a 100 nF capacitor | TXD pull-up; VBAT decoupling if the module lacks it. | cents |
+| 6 | Pull-up resistors and supply/regulator capacitors | Follow the MCP2021-330 circuit and datasheet capacitance/ESR requirements. | cents |
 | 7 | 3-way pluggable terminal block (5.08 mm) | Lets the unit-side cable be unplugged without desoldering. | US$2 |
 | 8 | Carrier board | Perfboard for one unit; a small custom PCB (KiCad, ordered from a PCB fab) if you want it neat or want to make more than one. | US$2-10 |
 | 9 | Enclosure: 3D-printed bezel and backplate | PETG or ASA; ABS is also fine. Heat-set M3 inserts and screws. | filament only |

@@ -1,22 +1,10 @@
-# Fujitsu AOT30L / ART30RL (old ducted units, 3-wire LIN wired remote) -- ESP32 "Master Controller".
-#
-# The ESP32 plus a LIN transceiver (TJA1021, "linttl3") REPLACES the wired remote: it polls the unit continuously and
-# turns Home Assistant climate commands into the remote's messages. The wired remote must be FULLY disconnected (all
-# three wires) while the Master Controller is on. See docs/aot30-master-controller.md.
-#
-# Not for newer Fujitsu units that speak the separate 8-byte protocol.
+# Fujitsu legacy wired-remote controller; reference hardware: ART30RL / AOT30L.
+# Disconnect the wired remote before enabling the master, or configure relay isolation.
+# Wiring and operation: docs/aot30-circuit.md and docs/aot30-master-controller.md.
 
 esphome:
   name: aircon
   friendly_name: "Aircon"
-  on_boot:
-    priority: 600
-    then:
-      - logger.log: "Fujitsu AOT30L/ART30RL - master controller firmware"
-      - light.turn_on:
-          id: status_light
-          brightness: 100%
-          effect: "Boot Pattern"
 
 esp32:
   board: esp32dev
@@ -24,55 +12,29 @@ esp32:
     type: arduino
 
 logger:
-  level: DEBUG
+  level: INFO
   baud_rate: 115200
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+  # Keep the heat-pump bus running during network outages.
+  reboot_timeout: 0s
 
   ap:
     ssid: "Aircon-Fallback"
-    password: "fallback123"
-
-  on_connect:
-    - logger.log: "WiFi Connected!"
-    - light.turn_on:
-        id: status_light
-        brightness: 100%
-        effect: "WiFi Connected"
-
-  on_disconnect:
-    - logger.log: "WiFi Disconnected!"
-    - light.turn_on:
-        id: status_light
-        brightness: 100%
-        effect: "WiFi Error"
+    password: !secret fallback_ap_password
 
 captive_portal:
 
 api:
-  on_client_connected:
-    - logger.log: "Home Assistant Connected!"
-    - light.turn_on:
-        id: status_light
-        brightness: 100%
-        effect: "HA Connected"
-
-  on_client_disconnected:
-    - logger.log: "Home Assistant Disconnected!"
-    - light.turn_on:
-        id: status_light
-        brightness: 100%
-        effect: "HA Disconnected"
+  encryption:
+    key: !secret api_encryption_key
+  reboot_timeout: 0s
 
 ota:
   - platform: esphome
-
-# If the device crashes on boot 10 times in a row it enters a minimal mode (WiFi + OTA only).
-safe_mode:
-  num_attempts: 10
-  reboot_timeout: 10min
+    password: !secret ota_password
 
 external_components:
   - source:
@@ -82,76 +44,33 @@ external_components:
     refresh: 0s
 
 # rx_pin = GPIO16 (from the transceiver's TXD pin), tx_pin = GPIO17 (to the transceiver's RXD pin).
-# debug: true logs every received byte ("RX raw" lines); set it to false for quieter logs.
+# Set debug: true temporarily for raw receive logs; INFO/WARN/ERROR messages remain enabled without it.
 climate:
   - platform: fujitsu_aot30
     name: "Fujitsu Heat Pump"
     id: fujitsu_hp
     rx_pin: 16
     tx_pin: 17
-    debug: true
-    # Optional relay that cuts the wired remote's +12 V and LIN (normally-closed contacts; the pin drives the coil, high = remote
-    # cut off). With it the remote stays connected and in charge, and each Home Assistant command briefly takes over from it:
-    # it is cut off for a few seconds, the change is sent and checked, then it is handed back. The "Master Controller" switch
-    # then means "keep the remote cut off and stay the permanent master". Without this option the remote must be disconnected
-    # for good and the switch is the only way in. See docs/aot30-master-controller.md ("takeover").
+    debug: false
+    # Optional normally-closed relay isolates remote power and LIN during HA commands.
+    # Master Controller on holds the remote isolated for continuous ESP control.
     # remote_relay_pin: 25
     # remote_relay_inverted: false   # true if your driver is active low
 
-# Status LED with patterns
-light:
-  - platform: status_led
-    id: status_light
-    name: "Status LED"
-    internal: true
-    pin:
-      number: GPIO2
-      inverted: false
-    effects:
-      - strobe:
-          name: "Boot Pattern"
-          colors:
-            - state: true
-              duration: 200ms
-            - state: false
-              duration: 200ms
-
-      - strobe:
-          name: "WiFi Connected"
-          colors:
-            - state: true
-              duration: 100ms
-            - state: false
-              duration: 1900ms
-
-      - strobe:
-          name: "WiFi Error"
-          colors:
-            - state: true
-              duration: 200ms
-            - state: false
-              duration: 200ms
-
-      - strobe:
-          name: "HA Connected"
-          colors:
-            - state: true
-              duration: 500ms
-            - state: false
-              duration: 1500ms
-
-      - strobe:
-          name: "HA Disconnected"
-          colors:
-            - state: true
-              duration: 300ms
-            - state: false
-              duration: 700ms
+# Native ESPHome warning/error indication instead of custom connection effects.
+status_led:
+  pin:
+    number: GPIO2
+    inverted: false
 
 web_server:
   port: 80
   version: 2
   log: false
+  # Authentication does not encrypt HTTP; use only on a trusted LAN.
+  auth:
+    username: !secret web_username
+    password: !secret web_password
 
 sensor:
   - platform: wifi_signal
@@ -163,13 +82,6 @@ sensor:
     name: "Uptime"
     id: uptime_sensor
     update_interval: 60s
-
-  - platform: template
-    name: "Free Heap Memory"
-    lambda: return heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-    unit_of_measurement: "bytes"
-    update_interval: 60s
-    entity_category: diagnostic
 
 # The climate entity shows the state the Master Controller last commanded (or, with the Master Controller off and the
 # wired remote connected, a best-effort view of what the bus shows). In HA's Auto mode the climate card hides the
@@ -196,7 +108,7 @@ number:
 # control for them. In Home Assistant use the climate entity itself (a Thermostat card). This unit has fan
 # Auto/Low/Medium/High (no Quiet).
 select:
-  # Mode, for the web UI. Commands only go to the unit while the Master Controller switch is on.
+  # Mode for the web UI; commands require the master or a configured takeover relay.
   - platform: template
     name: "Mode"
     id: fujitsu_mode
@@ -297,22 +209,6 @@ text_sensor:
     lambda: |-
       return id(fujitsu_hp)->bus_status();
 
-  - platform: template
-    name: "GitHub Repository"
-    icon: "mdi:github"
-    entity_category: diagnostic
-    lambda: |-
-      return std::string("https://github.com/matt-nz/Retro-Fujitsu-ESPHome");
-
-  # What the status LED is currently showing.
-  - platform: template
-    name: "Status LED Pattern"
-    icon: "mdi:led-outline"
-    entity_category: diagnostic
-    update_interval: 5s
-    lambda: |-
-      return id(status_light).get_effect_name();
-
 binary_sensor:
   - platform: status
     name: "Status"
@@ -341,12 +237,10 @@ switch:
     name: "Restart"
     entity_category: diagnostic
 
-  # EXPERIMENTAL. The ESP takes over the wired remote's role: it polls the unit continuously and the climate entity's
-  # commands (mode, setpoint, fan, ECO preset, off) become remote messages. The wired remote must be FULLY
-  # disconnected (all three wires). The unit shuts down when polling stops, so turning this off also turns the unit
-  # off. It refuses to start if it hears a wired remote or the bus is held low, and stops itself if a remote appears
-  # or a transmission fails; "Master Controller Status" says why and the switch turns itself off (see the interval
-  # below). Remembered across reboots so a power cut does not leave the unit unpolled.
+  # Continuous polling; remote must be disconnected or relay-isolated.
+  # Turning this off stops polling, not the unit immediately. Use climate Off to send an off command.
+  # First boot is passive. Once enabled, restore on across reboots; an intentional off is also saved.
+  # The interval below reflects refusals and faults.
   - platform: template
     name: "Master Controller"
     id: master_controller
@@ -380,11 +274,3 @@ interval:
           if (id(master_controller).state != active) {
             id(master_controller).publish_state(active);
           }
-  - interval: 300s
-    then:
-      - logger.log:
-          format: "Status - WiFi: %.0f dBm, Uptime: %.1f hrs, Heap: %d bytes"
-          args:
-            - 'id(wifi_signal_sensor).state'
-            - 'id(uptime_sensor).state / 3600.0'
-            - 'heap_caps_get_free_size(MALLOC_CAP_INTERNAL)'
