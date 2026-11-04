@@ -150,7 +150,7 @@ climate::ClimateTraits Aot30Climate::traits() {
       climate::CLIMATE_PRESET_NONE,
       climate::CLIMATE_PRESET_ECO,
   });
-  traits.set_visual_min_temperature(16.0f);
+  traits.set_visual_min_temperature(18.0f);
   traits.set_visual_max_temperature(30.0f);
   traits.set_visual_temperature_step(1.0f);
   return traits;

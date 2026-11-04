@@ -90,7 +90,7 @@ number:
     id: fujitsu_set_temperature
     icon: "mdi:thermometer"
     entity_category: diagnostic
-    min_value: 16
+    min_value: 18
     max_value: 30
     step: 1
     update_interval: 5s

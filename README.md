@@ -59,6 +59,7 @@ component block: it also defines the Master Controller switch and web controls.
 |---|---|
 | Device | `aircon`, ESP32 `esp32dev`, Arduino framework; adjust for your board |
 | Bus pins | `rx_pin: 16` from transceiver RXD; `tx_pin: 17` to transceiver TXD |
+| Setpoint range | Home Assistant climate controls use 18-30°C in 1°C steps |
 | Master Controller | `RESTORE_DEFAULT_OFF`: first boot is passive; once enabled, restores On across reboots. An intentional Off is also saved |
 | Relay takeover | Leave unconfigured during passive bring-up. Later set `remote_relay_pin` and `remote_relay_inverted` to match your driver; HA commands can then trigger transmission even with the master switch Off |
 | Logging | `logger.level: INFO`, climate `debug: false`; commands, acknowledgements, warnings and errors remain enabled |
