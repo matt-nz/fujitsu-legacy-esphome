@@ -93,7 +93,8 @@ MODE `0x02`, TEMP `0x14`, FAN `0x05`, ECO `0x00`.
 
 - `<run>`: `0x13` idle/off, `0x17` running. **Only the unit reply reports
   the unit's state.** A remote can poll idle while the unit continues running.
-  This flag does not report compressor activity or thermostat demand.
+  This flag does not report compressor activity or thermostat demand, and an
+  idle reply does not change the selected climate mode to Off.
 - `<pending>`: `0x08` normal, `0x0A` after each setting round.
 - `<round>`: `0x03` first, `0x13` repeat.
 - `<value>`: UART sampling mixes mode/fan/temperature differently by mode;

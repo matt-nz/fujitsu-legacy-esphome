@@ -380,8 +380,7 @@ int main() {
   CHECK(hp2.observed().valid && !hp2.observed().on && hp2.observed_revision() != rev);
   CHECK(Observed::unpack(mon.pack()) == mon);
 
-  // 7b. The remote's poll flag does not turn the state off, only the unit's own reply does (a power-cycled remote polls
-  // "idle" while the unit keeps running).
+  // 7b. Unit run status is separate from the selected HVAC mode: Fan Only can be active while the unit reports idle.
   static Bus hp3;
   reset(serial, hp3);
   for (uint8_t b : {0x80, 0xDD, 0xFC, 0x43, 0xFD, 0xA0, 0x81, 0x80}) serial.rx.push_back(b);  // remote: COOL low 23
@@ -393,11 +392,19 @@ int main() {
   for (uint8_t b : {0xD7, 0xEC, 0xF7, 0x80}) serial.rx.push_back(b);  // remote poll 7F 28 13 08 (idle)
   advance(hp3, 50);
   CHECK(hp3.observed().on);  // still on
-  for (uint8_t b : {0xE7, 0xE8, 0xB7, 0x7F, 0x80}) serial.rx.push_back(b);  // unit still running
+  for (uint8_t b : {0x80, 0xDD, 0xFC, 0xFC, 0xFD, 0xA0, 0x81, 0x80})
+    serial.rx.push_back(b);  // remote selects Fan Only / high
   advance(hp3, 50);
-  for (uint8_t b : {0xE7, 0xEC, 0xB7, 0x7F, 0x80}) serial.rx.push_back(b);  // unit reply 7F 18 13 48 80 (stopped)
+  CHECK(hp3.observed().on && hp3.observed().mode == fuji_passive::kModeFan);
+  for (uint8_t b : {0xE7, 0xE8, 0xB7, 0x7F, 0x80}) serial.rx.push_back(b);  // unit still reports running
   advance(hp3, 50);
-  CHECK(hp3.unit_run_state() == 0 && !hp3.observed().on);  // the unit's own reply turns it off
+  for (uint8_t b : {0xE7, 0xEC, 0xB7, 0x7F, 0x80}) serial.rx.push_back(b);  // unit reply 7F 18 13 48 80 (idle)
+  advance(hp3, 50);
+  CHECK(hp3.unit_run_state() == 0);
+  CHECK(hp3.observed().on && hp3.observed().mode == fuji_passive::kModeFan);
+  for (uint8_t b : {0xDB, 0xFC, 0x80}) serial.rx.push_back(b);  // explicit power-off
+  advance(hp3, 50);
+  CHECK(!hp3.observed().on);
 
   // 8. Takeover with a remote relay: listen, cut the remote off in a gap, send the change, check the echo, hand it back.
   {

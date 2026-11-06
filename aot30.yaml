@@ -34,7 +34,6 @@ api:
 
 ota:
   - platform: esphome
-    password: !secret ota_password
 
 external_components:
   - source: github://matt-nz/fujitsu-legacy-esphome@main

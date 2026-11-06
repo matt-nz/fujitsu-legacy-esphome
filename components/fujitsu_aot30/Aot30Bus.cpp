@@ -251,16 +251,8 @@ void Bus::on_byte(uint8_t value) {
         unit_running_known_ = true;
         unit_running_ = message.running;
         unit_run_state_.store(message.running ? 1 : 0);
-        // A running -> idle change also means off; this covers a missed power-off message. The idle -> running change
-        // is ignored because the setting message already set On.
-        if (passive_running_known_ && passive_running_ && !message.running) {
-          observe_off();
-          if (master_enabled_.load()) {
-            applied_ = Target();  // the unit stopped by itself: allow the same target to be sent again
-          }
-        }
-        passive_running_known_ = true;
-        passive_running_ = message.running;
+        // The run flag can become idle while the selected climate mode remains active (for example Fan Only).
+        // Treat the explicit power-off message, not an idle status reply, as the mode change to Off.
       }
       break;
     default:

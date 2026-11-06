@@ -75,7 +75,6 @@ every placeholder before validating or flashing:
 wifi_ssid: "YOUR_WIFI_NAME"
 wifi_password: "YOUR_WIFI_PASSWORD"
 api_encryption_key: "YOUR_BASE64_ENCODED_32_BYTE_KEY"
-ota_password: "YOUR_UNIQUE_OTA_PASSWORD"
 fallback_ap_password: "YOUR_UNIQUE_AP_PASSWORD"
 web_username: "YOUR_WEB_USERNAME"
 web_password: "YOUR_UNIQUE_WEB_PASSWORD"
@@ -85,9 +84,10 @@ Generate a fresh API key locally with `openssl rand -base64 32` and supply the
 same key when adding the device to Home Assistant. Use unique, strong passwords;
 the fallback AP password must be 8-63 characters. Do not commit the secrets file.
 
-API traffic is encrypted; OTA updates and the web UI require authentication.
-The web UI still uses unencrypted HTTP, so restrict it to a trusted LAN and do
-not expose it to the internet. The fallback AP and captive portal remain
+API traffic is encrypted; OTA updates use the API encryption key for
+authentication. The web UI requires authentication but still uses unencrypted
+HTTP, so restrict it to a trusted LAN and do not expose it to the internet. The
+fallback AP and captive portal remain
 available for WiFi recovery.
 
 WiFi and API `reboot_timeout` are disabled so loss of WiFi or Home Assistant does

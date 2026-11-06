@@ -152,8 +152,6 @@ class Bus {
   uint32_t last_remote_message_ms_ = 0;  // wired remote (sender nibble 2) only; ignores stray unit bytes
   uint32_t remote_message_count_ = 0;     // our own transmissions are discarded before parsing
   uint32_t ignore_rx_until_ms_ = 0;
-  bool passive_running_known_ = false;
-  bool passive_running_ = false;
   bool unit_running_known_ = false;
   bool unit_running_ = false;
   uint32_t unit_echo_count_ = 0;  // setting and power-off messages sent by the unit (its echoes)

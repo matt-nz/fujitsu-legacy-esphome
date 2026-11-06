@@ -78,7 +78,6 @@ Create `secrets.yaml` next to your device YAML, replacing every placeholder:
 wifi_ssid: "YOUR_WIFI_NAME"
 wifi_password: "YOUR_WIFI_PASSWORD"
 api_encryption_key: "YOUR_BASE64_ENCODED_32_BYTE_KEY"
-ota_password: "YOUR_UNIQUE_OTA_PASSWORD"
 fallback_ap_password: "YOUR_UNIQUE_AP_PASSWORD"
 web_username: "YOUR_WEB_USERNAME"
 web_password: "YOUR_UNIQUE_WEB_PASSWORD"
@@ -88,7 +87,7 @@ Generate the API key locally with `openssl rand -base64 32`; Home Assistant need
 the same key. Use strong, unique passwords (8-63 characters for the fallback AP).
 The local secrets file is gitignored; do not commit credentials.
 
-The template enables encrypted API access, authenticated OTA updates and an
+The template uses encrypted API access for OTA authentication and an
 authenticated web UI. The web UI is still **unencrypted HTTP**: keep it on a
 trusted LAN and do not expose it to the internet. OTA safe-mode recovery and the
 fallback AP/captive portal remain enabled.
