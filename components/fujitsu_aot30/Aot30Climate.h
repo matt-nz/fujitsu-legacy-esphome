@@ -44,8 +44,6 @@ class Aot30Climate : public climate::Climate, public Component {
   // The wired remote must be fully disconnected.
   void set_master_controller(bool enabled);
   bool master_controller_active() const { return bus_.master_active(); }
-  bool set_relay_test(bool cut) { return bus_.set_relay_test(cut); }
-  bool relay_test_active() const { return bus_.relay_test_active(); }
   std::string master_controller_status() const {
     const fuji_aot30::MasterState state = bus_.master_state();
     if (state == fuji_aot30::MasterState::OFF && bus_.takeover_available()) {

@@ -97,9 +97,6 @@ class Bus {
   bool master_active() const { return master_enabled_.load(); }
   MasterState master_state() const { return static_cast<MasterState>(master_state_.load()); }
   static const char *master_state_text(MasterState state);
-  // Hold the relay in its remote-disconnected position for wiring tests while no master/takeover is active.
-  bool set_relay_test(bool cut);
-  bool relay_test_active() const { return relay_test_active_.load(); }
   // Ask for a new state; false if the master controller is not running.
   bool submit_target(const Target &target);
   Target last_target() const { return Target::unpack(target_word_.load()); }
@@ -190,8 +187,6 @@ class Bus {
   bool relay_inverted_ = false;
   std::atomic<bool> relay_cut_{false};
   std::atomic<bool> takeover_requested_{false};
-  std::atomic<bool> relay_test_active_{false};
-  std::atomic<uint32_t> relay_test_started_ms_{0};
   bool takeover_ = false;                  // bus task: the current master run is a takeover and ends by itself
   bool takeover_sent_ = false;             // a change was queued during this takeover
   bool takeover_armed_ = false;            // bus task: the merge window of a pending request has started

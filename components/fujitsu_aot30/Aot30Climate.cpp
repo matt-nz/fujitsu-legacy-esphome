@@ -22,7 +22,7 @@ static void aot30_bus_task(void *pv) {
 #endif
 
 void Aot30Climate::setup() {
-  this->target_temperature = NAN;
+  this->target_temperature = 23.0f;
   this->mode = climate::CLIMATE_MODE_OFF;
   this->fan_mode = climate::CLIMATE_FAN_AUTO;
   this->preset = climate::CLIMATE_PRESET_NONE;
@@ -123,8 +123,6 @@ void Aot30Climate::update_state_() {
     }
     if (o.temp_valid) {
       this->target_temperature = static_cast<float>(o.temp);
-    } else if (o.mode_valid && o.mode == fuji_passive::kModeFan) {
-      this->target_temperature = NAN;
     }
   }
   this->publish_state();
@@ -192,6 +190,22 @@ fuji_aot30::Target Aot30Climate::current_target_() const {
 void Aot30Climate::control(const climate::ClimateCall &call) {
   using fuji_aot30::Fan;
   using fuji_aot30::Mode;
+  const bool mode_unchanged = !call.get_mode().has_value() || call.get_mode().value() == this->mode;
+  const bool stage_while_off = this->mode == climate::CLIMATE_MODE_OFF &&
+                               (call.get_target_temperature().has_value() || call.get_fan_mode().has_value());
+  const bool stage_temperature_in_fan_only = this->mode == climate::CLIMATE_MODE_FAN_ONLY &&
+                                             call.get_target_temperature().has_value() &&
+                                             !call.get_fan_mode().has_value();
+  if ((stage_while_off || stage_temperature_in_fan_only) && mode_unchanged && !call.get_preset().has_value()) {
+    if (call.get_target_temperature().has_value()) {
+      this->target_temperature = call.get_target_temperature().value();
+    }
+    if (call.get_fan_mode().has_value()) {
+      this->fan_mode = call.get_fan_mode().value();
+    }
+    this->publish_state();
+    return;
+  }
   const bool master = this->bus_.master_active();
   if (!master && !this->bus_.takeover_available()) {
     ESP_LOGW(TAG, "Climate command ignored: turn on the Master Controller (wired remote disconnected) first");

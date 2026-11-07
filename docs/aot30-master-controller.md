@@ -116,14 +116,19 @@ it does not itself restore a previous heating/cooling target.
 | **Master Controller** | Enables continuous ESP master operation; restored across reboots. With a relay, keeps the remote isolated until disabled or the master stops. |
 | **Master Controller Status** | Running, listening, takeover progress, or a refusal/stop reason. |
 | **Master Last Command** | Whether a recognised unit setting/off echo was observed during the acknowledgement window; not a full field-by-field state readback. |
-| **Relay Test - Isolate Remote** | Holds the configured relay open for up to 15 seconds for contact/wiring checks. Climate commands and master startup are blocked until switched off. |
 | **Unit Running** | Run flag from the unit's own replies; unknown until a reply has been received. Not compressor activity. |
 | **Bus Alive / Bus Status** | Recognised bus traffic is arriving, including while listening to the physical remote. |
 | **Fujitsu Heat Pump** | Climate control: Off, Auto, Cool, Heat, Fan; fan Auto/Low/Medium/High; Economy preset. |
 | **Mode / Set Temperature / Fan Speed / Economy Mode** | Additional controls for the ESPHome web UI and HA Auto-mode temperature selection. |
 
-Supported setpoints: Heat 16-30 C, Cool/Auto 18-30 C, whole degrees; Fan mode has
-no setpoint. Out-of-range setpoints are clamped by the climate adapter.
+The climate entity starts with a 23 C target and retains the selected target
+while Off or in Fan Only so it can be adjusted before choosing an operating
+mode. Fan speed is also staged while Off. The staged temperature applies when
+Heat, Cool or Auto is selected; fan speed is applied when any operating mode is
+selected. In Fan Only mode, fan-speed changes apply immediately; Fan mode
+itself has no active temperature setpoint. Supported setpoints: Heat 16-30 C,
+Cool/Auto 18-30 C, whole degrees; out-of-range setpoints are clamped by the
+climate adapter.
 Dry, Quiet and vane control are not offered on the reference installation.
 No room-temperature field has been identified on this bus.
 

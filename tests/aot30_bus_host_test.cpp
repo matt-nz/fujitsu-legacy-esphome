@@ -112,26 +112,6 @@ int main() {
   static Bus hp;
   g_now_us = 10 * 1000 * 1000;
   const uint8_t kRemotePoll[] = {0x80, 0xD7, 0xEC, 0xF7, 0x80};  // 7F 28 13 08 plus the next start byte
-  {
-    static Bus relay_test;
-    g_relay_level = -1;
-    relay_test.set_remote_relay(26, true);
-    relay_test.connect(&serial, 16, 17);
-    CHECK(g_relay_level == HIGH && !relay_test.remote_cut());
-    CHECK(relay_test.set_relay_test(true));
-    CHECK(relay_test.relay_test_active() && relay_test.remote_cut() && g_relay_level == LOW);
-    CHECK(!relay_test.start_master());
-    Target blocked;
-    blocked.on = true;
-    CHECK(!relay_test.request_takeover(blocked));
-    CHECK(relay_test.set_relay_test(false));
-    CHECK(!relay_test.relay_test_active() && !relay_test.remote_cut() && g_relay_level == HIGH);
-    CHECK(relay_test.set_relay_test(false));
-    CHECK(relay_test.set_relay_test(true));
-    advance(relay_test, 15001);
-    CHECK(!relay_test.relay_test_active() && !relay_test.remote_cut() && g_relay_level == HIGH);
-  }
-
   // 1. Dry run: starts after 1.5 s of silence, polls, then runs and waits for a command.
   reset(serial, hp);
   hp.set_dry_run(true);
