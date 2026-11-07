@@ -116,6 +116,7 @@ it does not itself restore a previous heating/cooling target.
 | **Master Controller** | Enables continuous ESP master operation; restored across reboots. With a relay, keeps the remote isolated until disabled or the master stops. |
 | **Master Controller Status** | Running, listening, takeover progress, or a refusal/stop reason. |
 | **Master Last Command** | Whether a recognised unit setting/off echo was observed during the acknowledgement window; not a full field-by-field state readback. |
+| **Relay Test - Isolate Remote** | Holds the configured relay open for up to 15 seconds for contact/wiring checks. Climate commands and master startup are blocked until switched off. |
 | **Unit Running** | Run flag from the unit's own replies; unknown until a reply has been received. Not compressor activity. |
 | **Bus Alive / Bus Status** | Recognised bus traffic is arriving, including while listening to the physical remote. |
 | **Fujitsu Heat Pump** | Climate control: Off, Auto, Cool, Heat, Fan; fan Auto/Low/Medium/High; Economy preset. |

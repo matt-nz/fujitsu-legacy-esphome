@@ -41,6 +41,8 @@ constexpr uint32_t kMaxMismatches = 3;
 constexpr uint32_t kSilenceMeansOffMs = 65000;
 // Time for the relay contacts to open and the remote to drop off the bus.
 constexpr uint32_t kRelaySettleMs = 50;
+// A manual relay test must not leave the remote isolated if its switch is forgotten.
+constexpr uint32_t kRelayTestTimeoutMs = 15000;
 // Takeover: the bus is isolated, so this is only a sanity check that nothing else is talking.
 constexpr uint32_t kTakeoverQuietMs = 300;
 // Takeover: polls before the setting, so the unit sees a normal cycle first. Untested whether it is needed; adjust by measuring.
@@ -123,6 +125,11 @@ void Bus::relay_set(bool cut) {
 void Bus::pump() {
   drain_rx();
   master_step();
+  if (relay_test_active_.load() && millis() - relay_test_started_ms_.load() >= kRelayTestTimeoutMs &&
+      relay_test_active_.exchange(false)) {
+    relay_set(false);
+    ESP_LOGW(TAG, "Relay test timed out; wired remote reconnected");
+  }
   if (!master_enabled_.load()) {
     takeover_step();
     // The unit shuts down about a minute after the last poll. If nothing recognisable has been heard for longer than that
@@ -279,6 +286,10 @@ const char *Bus::master_state_text(MasterState state) {
 }
 
 bool Bus::request_takeover(const Target &target) {
+  if (relay_test_active_.load()) {
+    ESP_LOGW(TAG, "Climate command ignored while the relay test is disconnecting the wired remote");
+    return false;
+  }
   if (master_enabled_.load()) {
     return submit_target(target);  // already in control: either a continuous master or a takeover in progress
   }
@@ -294,6 +305,10 @@ bool Bus::request_takeover(const Target &target) {
 }
 
 bool Bus::start_master() {
+  if (relay_test_active_.load()) {
+    ESP_LOGW(TAG, "Master controller cannot start while the relay test is active");
+    return false;
+  }
   if (master_enabled_.exchange(true)) {
     return false;
   }
@@ -306,6 +321,33 @@ void Bus::stop_master() {
   if (master_enabled_.load()) {
     command_.store(kCmdStop);
   }
+}
+
+bool Bus::set_relay_test(bool cut) {
+  if (cut) {
+    if (relay_pin_ < 0) {
+      ESP_LOGW(TAG, "Relay test unavailable: no remote relay pin is configured");
+      return false;
+    }
+    if (master_enabled_.load() || takeover_requested_.load()) {
+      ESP_LOGW(TAG, "Relay test unavailable while a master or takeover is active");
+      return false;
+    }
+    relay_test_started_ms_.store(millis());
+    relay_test_active_.store(true);
+    relay_set(true);
+    ESP_LOGW(TAG, "Relay test active: wired remote power and LIN should be disconnected");
+    return true;
+  }
+  if (master_enabled_.load()) {
+    ESP_LOGW(TAG, "Relay test cannot release the relay while the master is active");
+    return false;
+  }
+  relay_test_active_.store(false);
+  relay_test_started_ms_.store(0);
+  relay_set(false);
+  ESP_LOGI(TAG, "Relay test ended: wired remote reconnected");
+  return true;
 }
 
 bool Bus::submit_target(const Target &target) {
